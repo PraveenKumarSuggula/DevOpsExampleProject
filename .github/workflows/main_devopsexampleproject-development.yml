@@ -47,12 +47,11 @@ jobs:
         with:
           name: node-app
       
-      - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
+      - name: 'Deploy to Azure Web App (Develop)'
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'DevOpsExampleProject-development'
-          slot-name: 'Production'
+          slot-name: 'Production'  # Assuming you want to deploy to production slot in development environment
           package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7A7EBB14501545DCB60B62466DB9582A }}
           
@@ -62,7 +61,6 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-production == 'true'
     environment:
       name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     
     steps:
       - name: Manual approval
@@ -73,19 +71,16 @@ jobs:
           echo "Input value for deploy-to-production: ${{ github.event.inputs.deploy-to-production }}"
           exit 1  # Fail the job to pause the workflow until manual approval is given.
 
-      # Here you continue with the deployment only if the manual approval has been provided
       - name: Download artifact from build job
         uses: actions/download-artifact@v3
         with:
           name: node-app
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-production == 'true'
       
-      - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
+      - name: 'Deploy to Azure Web App (Production)'
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'DevOpsExampleProject'
-          slot-name: 'Production'
+          slot-name: 'Production'  # Assuming you want to deploy to production slot
           package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_FE5E8EF0CFDE43BF847353D4A7D551FE }}
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-production == 'true'
