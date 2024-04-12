@@ -70,6 +70,7 @@ jobs:
         run: |
           echo "Approve deployment to production"
           echo "To approve, set 'deploy-to-production' input to 'true' in the workflow dispatch event."
+          echo "Input value for deploy-to-production: ${{ github.event.inputs.deploy-to-production }}"
           exit 1  # Fail the job to pause the workflow until manual approval is given.
 
       # Here you continue with the deployment only if the manual approval has been provided
