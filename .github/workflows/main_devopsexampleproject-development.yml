@@ -1,13 +1,19 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy Node.js app to Azure Web App - DevOpsExampleProject-development
+name: Build and deploy Node.js app to Azure Web App - DevOpsExampleProject
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      deploy-to-production:
+        description: 'Deploy to production'
+        required: true
+        default: 'false'
+      deploy-to-test:
+        description: 'Deploy to test'
+        required: true
+        default: 'false'
 
 jobs:
   build:
@@ -32,11 +38,11 @@ jobs:
           name: node-app
           path: dist/dev-ops-example-project
 
-  deploy:
+  deploy-develop:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'Production'
+      name: 'Develop'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     
     steps:
@@ -45,11 +51,70 @@ jobs:
         with:
           name: node-app
       
-      - name: 'Deploy to Azure Web App'
+      - name: 'Deploy to Azure Web App (Develop)'
         uses: azure/webapps-deploy@v2
-        id: deploy-to-webapp
         with:
           app-name: 'DevOpsExampleProject-development'
           slot-name: 'Production'
           package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7A7EBB14501545DCB60B62466DB9582A }}
+
+  deploy-test:
+    runs-on: ubuntu-latest
+    needs: deploy-develop
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-test == 'true'
+    environment:
+      name: 'Test'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    
+    steps:
+    - name: Manual approval
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        echo "Approve deployment to test"
+        echo "To approve, set 'deploy-to-test' input to 'true' in the workflow dispatch event."
+        echo "Input value for deploy-to-test: ${{ github.event.inputs.deploy-to-test }}"
+          
+    - name: Download artifact from build job
+      uses: actions/download-artifact@v3
+      with:
+        name: node-app
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-test == 'true'
+      
+    - name: 'Deploy to Azure Web App (Test)'
+      uses: azure/webapps-deploy@v2
+      id: deploy-to-webapp
+      with:
+        app-name: 'DevOpsExampleProject-test'
+        slot-name: 'Production'
+        package: .
+        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_66850BCF400647F2B3017AED8F7CE593 }}  
+          
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: deploy-test
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-production == 'true'
+    environment:
+      name: 'Production'
+    
+    steps:
+      - name: Manual approval
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Approve deployment to production"
+          echo "To approve, set 'deploy-to-production' input to 'true' in the workflow dispatch event."
+          echo "Input value for deploy-to-production: ${{ github.event.inputs.deploy-to-production }}"
+
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v3
+        with:
+          name: node-app
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-production == 'true'
+      
+      - name: 'Deploy to Azure Web App (Production)'
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'DevOpsExampleProject'
+          slot-name: 'Production'
+          package: .
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_FE5E8EF0CFDE43BF847353D4A7D551FE }}
