@@ -12,22 +12,80 @@ on:
         default: 'false'
 
 jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js version
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+
+      - name: npm install, build
+        run: |
+          npm install
+          npm run build --if-present
+      
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v3
+        with:
+          name: node-app
+          path: dist/dev-ops-example-project
+
+  deploy-develop:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'Develop'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v3
+        with:
+          name: node-app
+      
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'DevOpsExampleProject-development'
+          slot-name: 'Production'
+          package: .
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7A7EBB14501545DCB60B62466DB9582A }}
+          
   deploy-production:
     runs-on: ubuntu-latest
+    needs: deploy-develop
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-production == 'true'
     environment:
       name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     
     steps:
       - name: Manual approval
+        #if: github.event_name == 'workflow_dispatch'
         run: |
-          echo "github.event_name: ${{ github.event_name }}"
-          echo "workflow_dispatch: ${{ workflow_dispatch }}"
-          echo "github.event_name: ${{ github.event_name }}"
-          echo "github.event.inputs.deploy-to-production: 'true'"
           echo "Approve deployment to production"
+          echo "${{ github.event_name }}"
           echo "To approve, set 'deploy-to-production' input to 'true' in the workflow dispatch event."
-          echo "Input value for deploy-to-production: ${{ github.event.inputs.deploy-to-production }}"
           exit 1  # Fail the job to pause the workflow until manual approval is given.
 
+      # Here you continue with the deployment only if the manual approval has been provided
       - name: Download artifact from build job
-        run: echo "Downloading artifact for production deployment..."
+        uses: actions/download-artifact@v3
+        with:
+          name: node-app
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-production == 'true'
+      
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'DevOpsExampleProject'
+          slot-name: 'Production'
+          package: .
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_FE5E8EF0CFDE43BF847353D4A7D551FE }}
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-production == 'true'
