@@ -14,13 +14,11 @@ on:
 jobs:
   deploy-production:
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-production == 'true'
     environment:
       name: 'Production'
     
     steps:
       - name: Manual approval
-        if: github.event_name != 'workflow_dispatch'
         run: |
           echo "Approve deployment to production"
           echo "To approve, set 'deploy-to-production' input to 'true' in the workflow dispatch event."
@@ -28,5 +26,4 @@ jobs:
           exit 1  # Fail the job to pause the workflow until manual approval is given.
 
       - name: Download artifact from build job
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-production == 'true'
         run: echo "Downloading artifact for production deployment..."
