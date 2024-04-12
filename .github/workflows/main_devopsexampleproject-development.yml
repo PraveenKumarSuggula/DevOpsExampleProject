@@ -72,10 +72,16 @@ jobs:
           exit 1  # Fail the job to pause the workflow until manual approval is given.
 
       - name: Download artifact from build job
-        uses: actions/download-artifact@v3
-        with:
-          name: node-app
+        #uses: actions/download-artifact@v3
+        #with:
+        #  name: node-app
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-production == 'true'
+        run: |
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "workflow_dispatch: ${{ workflow_dispatch }}"
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "github.event.inputs.deploy-to-production: 'true'"
+          
       
       - name: 'Deploy to Azure Web App (Production)'
         uses: azure/webapps-deploy@v2
