@@ -7,8 +7,12 @@ on:
   push:
     branches:
       - main
-  pull_request_review:
-    types: [submitted]
+  workflow_dispatch:
+    inputs:
+      deploy-to-production:
+        description: 'Deploy to production'
+        required: true
+        default: 'false'
 
 jobs:
   build:
@@ -58,12 +62,19 @@ jobs:
   deploy-production:
     runs-on: ubuntu-latest
     needs: [deploy-develop]
-    if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-production == 'true'
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     
     steps:
+      - name: Manual approval
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Approve deployment to production"
+          echo "To approve, set 'deploy-to-production' input to 'true' in the workflow dispatch event."
+          exit 1  # Fail the job to pause the workflow until manual approval is given.
+          
       - name: Download artifact from build job
         uses: actions/download-artifact@v3
         with:
