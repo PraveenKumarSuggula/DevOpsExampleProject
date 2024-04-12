@@ -55,7 +55,7 @@ jobs:
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'DevOpsExampleProject-development'
-          slot-name: 'Production'  # Assuming you want to deploy to production slot in development environment
+          slot-name: 'Production'
           package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7A7EBB14501545DCB60B62466DB9582A }}
 
@@ -86,7 +86,7 @@ jobs:
       id: deploy-to-webapp
       with:
         app-name: 'DevOpsExampleProject-test'
-        slot-name: 'Test'
+        slot-name: 'Production'
         package: .
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_66850BCF400647F2B3017AED8F7CE593 }}  
           
