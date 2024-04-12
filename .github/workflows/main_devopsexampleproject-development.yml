@@ -20,7 +20,7 @@ jobs:
     
     steps:
       - name: Manual approval
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name != 'workflow_dispatch'
         run: |
           echo "Approve deployment to production"
           echo "To approve, set 'deploy-to-production' input to 'true' in the workflow dispatch event."
