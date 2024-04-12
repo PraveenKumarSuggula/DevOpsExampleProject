@@ -16,20 +16,21 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v2
 
       - name: Set up Node.js version
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v2
         with:
-          node-version: '20.x'
+          node-version: '14.x'
 
-      - name: npm install, build
+      - name: Install dependencies and build
         run: |
           npm install
           npm run build --if-present
       
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v3
+      - name: Upload artifact for deployment
+        uses: actions/upload-artifact@v2
         with:
           name: node-app
           path: dist/dev-ops-example-project
@@ -43,16 +44,16 @@ jobs:
     
     steps:
       - name: Download artifact from build job
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v2
         with:
           name: node-app
-      
-      - name: 'Deploy to Azure Web App (Develop)'
+          path: dist/dev-ops-example-project
+
+      - name: Deploy to Azure Web App (Develop)
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'DevOpsExampleProject-development'
           slot-name: 'Production'  # Assuming you want to deploy to production slot in development environment
-          package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7A7EBB14501545DCB60B62466DB9582A }}
           
   deploy-production:
@@ -72,21 +73,13 @@ jobs:
           exit 1  # Fail the job to pause the workflow until manual approval is given.
 
       - name: Download artifact from build job
-        #uses: actions/download-artifact@v3
-        #with:
-        #  name: node-app
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-production == 'true'
-        run: |
-          echo "github.event_name: ${{ github.event_name }}"
-          echo "workflow_dispatch: ${{ workflow_dispatch }}"
-          echo "github.event_name: ${{ github.event_name }}"
-          echo "github.event.inputs.deploy-to-production: 'true'"
+        run: echo "Downloading artifact for production deployment..."
           
-      
-      - name: 'Deploy to Azure Web App (Production)'
+      - name: Deploy to Azure Web App (Production)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-production == 'true'
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'DevOpsExampleProject'
           slot-name: 'Production'  # Assuming you want to deploy to production slot
-          package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_FE5E8EF0CFDE43BF847353D4A7D551FE }}
